@@ -93,6 +93,10 @@ tr:hover td{background:#f8fafd}
 #printArea{display:none}
 /* v7 */
 .exres{margin-top:6px;font-size:13px;padding:6px}
+.exfh{display:grid;grid-template-columns:minmax(0,1fr) 104px;gap:6px}
+.exfh input{min-width:0}
+.exgrid{grid-template-columns:repeat(4,minmax(0,1fr))}
+@media (max-width:1180px){#exA{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .exres.r-apto{background:#e6f4ec;color:var(--ok);font-weight:600}
 .exres.r-noapto{background:#fde8e6;color:var(--err);font-weight:600}
 .exres.r-nopres{background:#eef0f4;color:#555;font-weight:600}
@@ -268,24 +272,24 @@ tr.inactivo td{color:var(--muted);background:#fafafa}
       <fieldset>
         <legend id="legExam">Fechas de examen – Permiso B</legend>
         <div class="exgrid" id="exB">
-          <div class="exgroup c2"><h4>Teórico</h4><label>Fecha examen teórico</label><input type="date" name="ex_teorico">
+          <div class="exgroup c2"><h4>Teórico</h4><label>Fecha examen teórico · fecha y hora</label><div class="exfh"><input type="date" name="ex_teorico"><input type="time" name="hora_teorico" step="300" title="Hora de la cita del examen"></div>
             <select name="res_teorico" class="exres"><option value="">Resultado: pendiente</option><option value="apto">✔ Apto</option><option value="noapto">✖ No apto</option><option value="nopres">No presentado</option></select>
             <div class="exhist" id="hist_teorico"></div></div>
-          <div class="exgroup c2"><h4>Práctico</h4><label>Fecha examen práctico</label><input type="date" name="ex_practico">
+          <div class="exgroup c2"><h4>Práctico</h4><label>Fecha examen práctico · fecha y hora</label><div class="exfh"><input type="date" name="ex_practico"><input type="time" name="hora_practico" step="300" title="Hora de la cita del examen"></div>
             <select name="res_practico" class="exres"><option value="">Resultado: pendiente</option><option value="apto">✔ Apto</option><option value="noapto">✖ No apto</option><option value="nopres">No presentado</option></select>
             <div class="exhist" id="hist_practico"></div></div>
         </div>
         <div class="exgrid hidden" id="exA">
-          <div class="exgroup"><h4>Teórico</h4><label>Común</label><input type="date" name="ex_comun">
+          <div class="exgroup"><h4>Teórico</h4><label>Común · fecha y hora</label><div class="exfh"><input type="date" name="ex_comun"><input type="time" name="hora_comun" step="300" title="Hora de la cita del examen"></div>
             <select name="res_comun" class="exres"><option value="">Resultado: pendiente</option><option value="apto">✔ Apto</option><option value="noapto">✖ No apto</option><option value="nopres">No presentado</option></select>
             <div class="exhist" id="hist_comun"></div></div>
-          <div class="exgroup"><h4>Teórico</h4><label>Específico</label><input type="date" name="ex_especifico">
+          <div class="exgroup"><h4>Teórico</h4><label>Específico · fecha y hora</label><div class="exfh"><input type="date" name="ex_especifico"><input type="time" name="hora_especifico" step="300" title="Hora de la cita del examen"></div>
             <select name="res_especifico" class="exres"><option value="">Resultado: pendiente</option><option value="apto">✔ Apto</option><option value="noapto">✖ No apto</option><option value="nopres">No presentado</option></select>
             <div class="exhist" id="hist_especifico"></div></div>
-          <div class="exgroup"><h4>Práctico</h4><label>Circuito cerrado</label><input type="date" name="ex_circuito">
+          <div class="exgroup"><h4>Práctico</h4><label>Circuito cerrado · fecha y hora</label><div class="exfh"><input type="date" name="ex_circuito"><input type="time" name="hora_circuito" step="300" title="Hora de la cita del examen"></div>
             <select name="res_circuito" class="exres"><option value="">Resultado: pendiente</option><option value="apto">✔ Apto</option><option value="noapto">✖ No apto</option><option value="nopres">No presentado</option></select>
             <div class="exhist" id="hist_circuito"></div></div>
-          <div class="exgroup"><h4>Práctico</h4><label>Vía pública</label><input type="date" name="ex_via">
+          <div class="exgroup"><h4>Práctico</h4><label>Vía pública · fecha y hora</label><div class="exfh"><input type="date" name="ex_via"><input type="time" name="hora_via" step="300" title="Hora de la cita del examen"></div>
             <select name="res_via" class="exres"><option value="">Resultado: pendiente</option><option value="apto">✔ Apto</option><option value="noapto">✖ No apto</option><option value="nopres">No presentado</option></select>
             <div class="exhist" id="hist_via"></div></div>
         </div>
@@ -303,7 +307,7 @@ tr.inactivo td{color:var(--muted);background:#fafafa}
   </div>
 
   <div class="panel" id="panelPagos">
-    <h2>Pagos y bonos</h2>
+    <h2>Bonos y clases</h2>
     <div id="pagosBox"></div>
   </div>
 </section>
@@ -510,7 +514,7 @@ tr.inactivo td{color:var(--muted);background:#fafafa}
 "use strict";
 /* ================== DATOS ================== */
 const LS_KEY = "agendaAutoescuela_v1";
-const VERSION = "v7 NOV27";
+const VERSION = "v8 NOV27";
 const HORAS = []; for (let h = 8; h < 20; h++) HORAS.push(String(h).padStart(2,"0")+":00");
 const EXAMENES = {
   B:  [["teorico","Teórico"],["practico","Práctico"]],
@@ -637,14 +641,18 @@ F.addEventListener("change",e=>{
   cambiosFicha=true; const nm=e.target.name||"";
   if(nm==="rgpd"&&e.target.checked&&!F.rgpdFecha.value) F.rgpdFecha.value=hoy();
   if(nm.startsWith("res_")){ pintarSelRes(); validarFicha(); }
+  if(nm.startsWith("hora_")){ const k=nm.slice(5), r=validarFicha(); ofrecerWaExamen(k,F["ex_"+k].value,r); }
   if(nm.startsWith("ex_")){
     const k=nm.slice(3), a=actual&&alumno(actual), pr=a&&a.resultados&&a.resultados[k];
     // nueva fecha tras un No apto / No presentado: el intento anterior pasará al historial al guardar
     if(a&&(pr==="noapto"||pr==="nopres")&&a.examenes[k]&&e.target.value!==a.examenes[k]&&F["res_"+k].value===pr){ F["res_"+k].value=""; pintarSelRes(); }
-    pintarHistorial(); const r=validarFicha(); ofrecerWaExamen(k,e.target.value,r);
+    pintarHistorial(); const r=validarFicha();
+    if(F["hora_"+k].value) ofrecerWaExamen(k,e.target.value,r);   // sin hora todavía: se ofrecerá al ponerla
   }
 });
 const TXT_RES={apto:"Apto",noapto:"No apto",nopres:"No presentado"};
+function horaEx(a,k){ return (a&&a.horasEx&&a.horasEx[k])||""; }
+function leerHoras(){ const o={}; EXAMENES[F.permiso.value].forEach(([k])=>{ o[k]=F["hora_"+k].value||""; }); return o; }
 function rtag(r){ return r?`<span class="rt rt-${r}">${r==="apto"?"✔ ":r==="noapto"?"✖ ":""}${TXT_RES[r]}</span>`:""; }
 function pintarSelRes(){ Object.keys(NOMBRE_EX).forEach(k=>{ const el=F["res_"+k]; el.className="exres"+(el.value?" r-"+el.value:""); }); }
 function leerResultados(){ const o={}; EXAMENES[F.permiso.value].forEach(([k])=>{ o[k]=F["res_"+k].value||""; }); return o; }
@@ -664,12 +672,14 @@ function pintarHistorial(){
 let ultimoOfrecido="";
 function ofrecerWaExamen(k,f,r){
   if(!f||!/^\d{4}-\d{2}-\d{2}$/.test(f)||f<hoy()||r.err.length) return;
-  const clave=(actual||"nuevo")+k+f; if(clave===ultimoOfrecido) return;   // no repetir la pregunta para la misma fecha
+  const hh=F["hora_"+k].value;
+  if(!hh) return;                                                          // primero hay que poner la hora de la cita
+  const clave=(actual||"nuevo")+k+f+hh; if(clave===ultimoOfrecido) return;   // no repetir la pregunta para la misma fecha y hora
   const a=actual&&alumno(actual);
-  if(a&&a.examenes&&a.examenes[k]===f&&db.avisos[keyEx(a,k)]) return;    // ya estaba guardada y avisada
+  if(a&&a.examenes&&a.examenes[k]===f&&horaEx(a,k)===hh&&db.avisos[keyEx(a,k)]) return;    // ya estaba guardada y avisada
   ultimoOfrecido=clave;
   const nom=F.nombre.value.trim()||"el alumno";
-  $("mExWaTxt").innerHTML=`<b>${esc(TXT_EXAMEN[k])}</b> el <b>${esc(fechaLarga(f))}</b>.<br>¿Quieres enviar ahora el aviso por WhatsApp a ${esc(nom)}?`;
+  $("mExWaTxt").innerHTML=`<b>${esc(TXT_EXAMEN[k])}</b> el <b>${esc(fechaLarga(f))}</b> a las <b>${esc(hh)}</b>.<br>¿Quieres enviar ahora el aviso por WhatsApp a ${esc(nom)}?`;
   $("mExWa").classList.remove("hidden");
   $("mExWaNo").onclick=()=>$("mExWa").classList.add("hidden");
   $("mExWaSi").onclick=()=>{
@@ -760,7 +770,7 @@ function cargarFicha(id){
   actual=id; F.reset();
   ["nombre","apellidos","dni","fnac","tel","email","dir","permiso","alta","profesor","vehiculo","obs"].forEach(k=>{ F[k].value=a[k]||""; });
   rellenarSelectsFicha(a.profesor,a.vehiculo);
-  Object.keys(NOMBRE_EX).forEach(k=>{ F["ex_"+k].value=(a.examenes&&a.examenes[k])||""; F["res_"+k].value=(a.resultados&&a.resultados[k])||""; });
+  Object.keys(NOMBRE_EX).forEach(k=>{ F["ex_"+k].value=(a.examenes&&a.examenes[k])||""; F["res_"+k].value=(a.resultados&&a.resultados[k])||""; F["hora_"+k].value=horaEx(a,k); });
   F.rgpd.checked=!!a.rgpd; F.rgpdFecha.value=a.rgpdFecha||"";
   fotoData=a.foto||""; pintarFoto(); mostrarBloqueExamen(); pintarSelRes(); pintarHistorial(); validarFicha();
   $("fichaTitulo").textContent=nombreCompleto(a); pintarClasesAlumno(); pintarPagos(); cambiosFicha=false;
@@ -791,14 +801,14 @@ function guardarAlumno(){
   const o={ id:actual||uid(), nombre:F.nombre.value.trim(), apellidos:F.apellidos.value.trim(), dni,
     fnac:F.fnac.value, tel:F.tel.value.trim(), email:F.email.value.trim(), dir:F.dir.value.trim(),
     permiso:F.permiso.value, alta:F.alta.value, profesor:F.profesor.value.trim(), vehiculo:F.vehiculo.value.trim(),
-    obs:F.obs.value, foto:fotoData, examenes:leerExamenes(), resultados:leerResultados(),
+    obs:F.obs.value, foto:fotoData, examenes:leerExamenes(), horasEx:leerHoras(), resultados:leerResultados(),
     rgpd:F.rgpd.checked, rgpdFecha:F.rgpd.checked?(F.rgpdFecha.value||hoy()):"" };
   const prev=actual&&alumno(actual);
   o.historial=(prev&&prev.historial||[]).slice(); o.cargos=prev&&prev.cargos||[]; o.pagos=prev&&prev.pagos||[];
   // Intento suspendido / no presentado al que se le pone fecha nueva → pasa al historial
   if(prev) EXAMENES[o.permiso].forEach(([k])=>{
     const pf=prev.examenes&&prev.examenes[k], pr=prev.resultados&&prev.resultados[k];
-    if(pf&&(pr==="noapto"||pr==="nopres")&&o.examenes[k]!==pf) o.historial.push({k,fecha:pf,res:pr});
+    if(pf&&(pr==="noapto"||pr==="nopres")&&o.examenes[k]!==pf) o.historial.push({k,fecha:pf,hora:horaEx(prev,k),res:pr});
   });
   const i=db.alumnos.findIndex(a=>a.id===o.id);
   if(i>=0) db.alumnos[i]=o; else db.alumnos.push(o);
@@ -844,8 +854,8 @@ $("btnImprimir").onclick=()=>{
   if(!actual){ alert("Guarda primero el alumno."); return; }
   const a=alumno(actual);
   const ex=EXAMENES[a.permiso].map(([k,n])=>{ const hi=(a.historial||[]).filter(h=>h.k===k).map(h=>fmt(h.fecha)+" "+TXT_RES[h.res]);
-    return `<tr><th>${n}</th><td>${a.examenes[k]?diaSem(a.examenes[k])+" "+fmt(a.examenes[k]):"—"}</td><td>${TXT_RES[(a.resultados||{})[k]]||""}</td><td>${hi.length?"Anteriores: "+hi.join(", "):""}</td></tr>`; }).join("");
-  const b=bonoDe(a), q=cuentasDe(a);
+    return `<tr><th>${n}</th><td>${a.examenes[k]?diaSem(a.examenes[k])+" "+fmt(a.examenes[k])+(horaEx(a,k)?" · "+horaEx(a,k):""):"—"}</td><td>${TXT_RES[(a.resultados||{})[k]]||""}</td><td>${hi.length?"Anteriores: "+hi.join(", "):""}</td></tr>`; }).join("");
+  const b=bonoDe(a);
   const cl=db.clases.filter(c=>c.alumnoId===a.id).sort((x,y)=>(x.fecha+x.hora).localeCompare(y.fecha+y.hora));
   $("printArea").innerHTML=`${a.foto?`<img class="pfoto" src="${a.foto}">`:`<div class="pfoto"></div>`}
     <h2>Ficha de alumno · Permiso ${a.permiso}</h2>
@@ -855,9 +865,8 @@ $("btnImprimir").onclick=()=>{
     <h3>Clases prácticas (${cl.length})</h3>
     <table><tr><th>Fecha</th><th>Horario</th><th>Tipo</th><th>Profesor</th><th>Vehículo</th><th>Asistencia</th></tr>
     ${cl.map(c=>`<tr><td>${fmt(c.fecha)}</td><td>${c.hora}–${finClase(c)}</td><td>${esc(c.tipo)}</td><td>${esc(c.profesor)}</td><td>${esc(c.vehiculo)}</td><td>${c.estado?TXT_EST[c.estado]:c.fecha<hoy()?"Sin marcar":"Programada"}</td></tr>`).join("")}</table>
-    <h3>Pagos y bonos</h3>
-    <p>Contratado: <b>${eur(q.total)}</b> · Pagado: <b>${eur(q.pagado)}</b> · Pendiente: <b>${eur(q.pendiente)}</b><br>
-    Clases contratadas: ${b.contratadas} · Hechas: ${b.consumidas} · Quedan: ${b.quedan}</p>
+    <h3>Bonos y clases</h3>
+    <p>Clases contratadas: ${b.contratadas} · Hechas: ${b.consumidas} · Ya programadas: ${b.programadas} · Quedan: ${b.quedan}</p>
     <p>Consentimiento de protección de datos: <b>${a.rgpd?"Firmado el "+fmt(a.rgpdFecha):"NO FIRMADO"}</b></p>
     ${a.obs?`<h3>Observaciones</h3><p>${esc(a.obs)}</p>`:""}`;
   window.print();
@@ -875,55 +884,35 @@ function bonoDe(a,excluir){
   const programadas=cl.filter(c=>!c.estado&&c.fecha>=hoy()).reduce((t,c)=>t+unidades(c),0);
   return {contratadas,consumidas,programadas,quedan:contratadas-consumidas,disponibles:contratadas-consumidas-programadas};
 }
-function cuentasDe(a){
-  const total=(a.cargos||[]).reduce((t,x)=>t+(Number(x.importe)||0),0), pagado=(a.pagos||[]).reduce((t,x)=>t+(Number(x.importe)||0),0);
-  return {total,pagado,pendiente:Math.round((total-pagado)*100)/100};
-}
-const CONCEPTOS=["Matrícula","Bono 5 clases","Bono 10 clases","Bono 20 clases","Clase suelta","Tasa DGT","Acompañamiento a examen","Material teórico"];
-function pintarPagos(){
+const CONCEPTOS=["Bono 5 clases","Bono 10 clases","Bono 15 clases","Bono 20 clases","Clase suelta"];
+function pintarPagos(){   // apartado «Bonos y clases»: lo contratado se va descontando con las clases realizadas
   const box=$("pagosBox");
-  if(!actual||!alumno(actual)){ box.innerHTML='<p style="color:var(--muted);margin:0">Guarda primero el alumno para apuntar lo contratado y los pagos.</p>'; return; }
-  const a=alumno(actual), b=bonoDe(a), q=cuentasDe(a);
-  const cg=(a.cargos||[]).slice().sort((x,y)=>x.fecha.localeCompare(y.fecha)), pg=(a.pagos||[]).slice().sort((x,y)=>x.fecha.localeCompare(y.fecha));
+  if(!actual||!alumno(actual)){ box.innerHTML='<p style="color:var(--muted);margin:0">Guarda primero el alumno para apuntar sus bonos o clases sueltas.</p>'; return; }
+  const a=alumno(actual), b=bonoDe(a);
+  const cg=(a.cargos||[]).filter(x=>Number(x.clases)>0).sort((x,y)=>x.fecha.localeCompare(y.fecha));
   box.innerHTML=`<div class="kpis">
-      <div class="kpi"><b>${eur(q.total)}</b><span>Contratado</span></div>
-      <div class="kpi bien"><b>${eur(q.pagado)}</b><span>Pagado</span></div>
-      <div class="kpi ${q.pendiente>0?"mal":""}"><b>${eur(q.pendiente)}</b><span>${q.pendiente<0?"A favor del alumno":"Pendiente de pago"}</span></div>
       <div class="kpi"><b>${b.contratadas}</b><span>Clases contratadas</span></div>
-      <div class="kpi"><b>${b.consumidas}</b><span>Clases hechas${db.config.faltaDescuenta!==false?" (con faltas)":""}</span></div>
-      <div class="kpi ${b.contratadas&&b.quedan<=0?"mal":""}"><b>${b.quedan}</b><span>Quedan (${b.programadas} ya programadas)</span></div>
+      <div class="kpi"><b>${b.consumidas}</b><span>Clases hechas${db.config.faltaDescuenta!==false?" (incluye faltas)":""}</span></div>
+      <div class="kpi"><b>${b.programadas}</b><span>Ya programadas</span></div>
+      <div class="kpi ${b.contratadas&&b.quedan<=0?"mal":b.contratadas?"bien":""}"><b>${b.quedan}</b><span>Quedan</span></div>
     </div>
-    <div class="pagos2">
-      <div><h4>Contratado</h4>
-        <div class="gpago c"><input type="date" id="cgFecha" value="${hoy()}"><input id="cgConcepto" list="dlConceptos" placeholder="Concepto">
-          <input id="cgImporte" type="number" step="0.01" min="0" placeholder="€"><input id="cgClases" type="number" min="0" step="1" placeholder="Nº clases" title="Clases que incluye (0 si no es un bono)">
-          <button class="btn sm" id="cgAdd">Añadir</button></div>
-        <datalist id="dlConceptos">${CONCEPTOS.map(c=>`<option value="${c}">`).join("")}</datalist>
-        <table><tr><th>Fecha</th><th>Concepto</th><th>Clases</th><th>Importe</th><th></th></tr>
-          ${cg.map(x=>`<tr><td>${fmt(x.fecha)}</td><td>${esc(x.concepto)}</td><td>${x.clases||""}</td><td>${eur(x.importe)}</td><td><button class="btn del sm" onclick="borrarCargo('${x.id}')">✖</button></td></tr>`).join("")||`<tr><td colspan="5" style="color:var(--muted)">Nada contratado todavía.</td></tr>`}</table></div>
-      <div><h4>Pagos recibidos</h4>
-        <div class="gpago p"><input type="date" id="pgFecha" value="${hoy()}"><input id="pgImporte" type="number" step="0.01" min="0" placeholder="€">
-          <select id="pgForma"><option>Efectivo</option><option>Tarjeta</option><option>Bizum</option><option>Transferencia</option></select><input id="pgNota" placeholder="Nota (opcional)">
-          <button class="btn sm" id="pgAdd">Añadir</button></div>
-        <table><tr><th>Fecha</th><th>Forma</th><th>Nota</th><th>Importe</th><th></th></tr>
-          ${pg.map(x=>`<tr><td>${fmt(x.fecha)}</td><td>${esc(x.forma)}</td><td>${esc(x.nota)}</td><td>${eur(x.importe)}</td><td><button class="btn del sm" onclick="borrarPago('${x.id}')">✖</button></td></tr>`).join("")||`<tr><td colspan="5" style="color:var(--muted)">Sin pagos todavía.</td></tr>`}</table></div>
-    </div>`;
-  $("cgConcepto").oninput=()=>{ const m=$("cgConcepto").value.match(/bono\s+(\d+)/i); if(m) $("cgClases").value=m[1]; else if(/clase suelta/i.test($("cgConcepto").value)) $("cgClases").value=1; };
+    <div class="gpago c" style="grid-template-columns:150px 1fr 110px auto;max-width:720px">
+      <input type="date" id="cgFecha" value="${hoy()}"><input id="cgConcepto" list="dlConceptos" placeholder="Bono o clase suelta">
+      <input id="cgClases" type="number" min="1" step="1" placeholder="Nº clases"><button class="btn sm" id="cgAdd">Añadir</button></div>
+    <datalist id="dlConceptos">${CONCEPTOS.map(c=>`<option value="${c}">`).join("")}</datalist>
+    <table style="max-width:720px"><tr><th>Fecha</th><th>Bono / clase</th><th>Clases</th><th></th></tr>
+      ${cg.map(x=>`<tr><td>${fmt(x.fecha)}</td><td>${esc(x.concepto)}</td><td>${x.clases}</td><td><button class="btn del sm" onclick="borrarCargo('${x.id}')">✖</button></td></tr>`).join("")
+        ||`<tr><td colspan="4" style="color:var(--muted)">Ningún bono ni clase suelta apuntado.</td></tr>`}</table>
+    <p style="font-size:12px;color:var(--muted);margin:8px 0 0">Cada 45 minutos de clase descuentan una clase (90 min = 2).</p>`;
+  $("cgConcepto").oninput=()=>{ const m=$("cgConcepto").value.match(/(\d+)\s*clases?/i); if(m) $("cgClases").value=m[1]; else if(/clase suelta/i.test($("cgConcepto").value)) $("cgClases").value=1; };
   $("cgAdd").onclick=()=>{
-    const concepto=$("cgConcepto").value.trim(), importe=parseFloat($("cgImporte").value), clases=parseInt($("cgClases").value||"0",10);
-    if(!concepto||isNaN(importe)||importe<0){ alert("Indica el concepto y el importe."); return; }
-    a.cargos=a.cargos||[]; a.cargos.push({id:uid(),fecha:$("cgFecha").value||hoy(),concepto,importe:Math.round(importe*100)/100,clases:isNaN(clases)?0:clases});
-    persistir(); pintarPagos(); pintarLista(); toast("Añadido: "+concepto);
-  };
-  $("pgAdd").onclick=()=>{
-    const importe=parseFloat($("pgImporte").value);
-    if(isNaN(importe)||importe<=0){ alert("Indica el importe pagado."); return; }
-    a.pagos=a.pagos||[]; a.pagos.push({id:uid(),fecha:$("pgFecha").value||hoy(),importe:Math.round(importe*100)/100,forma:$("pgForma").value,nota:$("pgNota").value.trim()});
-    persistir(); pintarPagos(); pintarLista(); toast("Pago de "+eur(importe)+" anotado.");
+    const concepto=$("cgConcepto").value.trim()||"Bono", clases=parseInt($("cgClases").value||"0",10);
+    if(!(clases>0)){ alert("Indica el número de clases."); return; }
+    a.cargos=a.cargos||[]; a.cargos.push({id:uid(),fecha:$("cgFecha").value||hoy(),concepto,clases});
+    persistir(); pintarPagos(); pintarLista(); toast("Añadido: "+concepto+" ("+clases+" clases)");
   };
 }
-window.borrarCargo=id=>{ const a=alumno(actual), x=a.cargos.find(c=>c.id===id); if(!x||!confirm(`¿Borrar «${x.concepto}» (${eur(x.importe)})?`)) return; a.cargos=a.cargos.filter(c=>c.id!==id); persistir(); pintarPagos(); pintarLista(); };
-window.borrarPago=id=>{ const a=alumno(actual), x=a.pagos.find(c=>c.id===id); if(!x||!confirm(`¿Borrar el pago de ${eur(x.importe)} del ${fmt(x.fecha)}?`)) return; a.pagos=a.pagos.filter(c=>c.id!==id); persistir(); pintarPagos(); pintarLista(); };
+window.borrarCargo=id=>{ const a=alumno(actual), x=a.cargos.find(c=>c.id===id); if(!x||!confirm(`¿Borrar «${x.concepto}» (${x.clases} clases)?`)) return; a.cargos=a.cargos.filter(c=>c.id!==id); persistir(); pintarPagos(); pintarLista(); };
 
 /* ================== LISTADO ================== */
 $("buscar").oninput=pintarLista; $("filtroPermiso").onchange=pintarLista;
@@ -953,30 +942,28 @@ function pintarLista(){
   $("kpis").innerHTML=`<div class="kpi"><b>${db.alumnos.length}</b><span>Alumnos</span></div>
     <div class="kpi"><b>${cnt("B")}</b><span>Permiso B</span></div><div class="kpi"><b>${cnt("A1")}</b><span>A1</span></div>
     <div class="kpi"><b>${cnt("A2")}</b><span>A2</span></div><div class="kpi"><b>${db.clases.filter(c=>c.fecha>=hoy()&&c.estado!=="anulada").length}</b><span>Clases programadas</span></div>
-    ${(()=>{ const sm=db.clases.filter(c=>c.fecha<hoy()&&!c.estado).length; return `<div class="kpi ${sm?"mal":""}"><b>${sm}</b><span>Clases sin marcar asistencia</span></div>`; })()}
-    ${(()=>{ const t=db.alumnos.reduce((s,a)=>s+Math.max(0,cuentasDe(a).pendiente),0); return `<div class="kpi ${t>0?"mal":""}"><b>${eur(t)}</b><span>Pendiente de cobro</span></div>`; })()}`;
-  $("tLista").innerHTML=`<tr><th></th><th>Alumno</th><th>DNI/NIE</th><th>Permiso</th><th>Teléfono</th><th>Profesor</th><th>Clases<br><small>hechas / quedan</small></th><th>Situación</th><th>Pendiente</th><th></th></tr>`+
-    (lst.length?lst.map(a=>{ const b=bonoDe(a), q=cuentasDe(a);
+    ${(()=>{ const sm=db.clases.filter(c=>c.fecha<hoy()&&!c.estado).length; return `<div class="kpi ${sm?"mal":""}"><b>${sm}</b><span>Clases sin marcar asistencia</span></div>`; })()}`;
+  $("tLista").innerHTML=`<tr><th></th><th>Alumno</th><th>DNI/NIE</th><th>Permiso</th><th>Teléfono</th><th>Profesor</th><th>Clases<br><small>hechas / quedan</small></th><th>Situación</th><th></th></tr>`+
+    (lst.length?lst.map(a=>{ const b=bonoDe(a);
       return `<tr><td>${a.foto?`<img class="mini" src="${a.foto}">`:`<div class="mini"></div>`}</td>
       <td><a href="#" onclick="abrirFicha('${a.id}');return false"><b>${esc(nombreCompleto(a))}</b></a>${a.rgpd?"":'<span class="tag-warn" title="Falta el consentimiento de protección de datos">⚠ RGPD</span>'}</td>
       <td>${esc(a.dni)}</td><td><span class="tag t-${a.permiso}">${a.permiso}</span></td><td>${esc(a.tel)}</td><td>${esc(a.profesor)}</td>
       <td>${b.consumidas} / ${b.contratadas?`<b style="color:${b.quedan<=0?"var(--err)":"inherit"}">${b.quedan}</b>`:"—"}</td>
-      <td>${situacion(a)}</td><td>${q.pendiente>0?`<b style="color:var(--err)">${eur(q.pendiente)}</b>`:q.total?'<span style="color:var(--ok)">✔ Al día</span>':"—"}</td>
+      <td>${situacion(a)}</td>
       <td class="row"><button class="btn sec sm" onclick="abrirFicha('${a.id}')">Abrir</button><button class="btn del sm" onclick="borrarAlumno('${a.id}')">Borrar</button></td></tr>`;}).join("")
-    :`<tr><td colspan="10" style="color:var(--muted);text-align:center;padding:20px">No hay alumnos${q||fp?" con ese filtro":""}.</td></tr>`);
+    :`<tr><td colspan="9" style="color:var(--muted);text-align:center;padding:20px">No hay alumnos${q||fp?" con ese filtro":""}.</td></tr>`);
 }
 $("btnCSV").onclick=()=>{
   const cab=["Apellidos","Nombre","DNI","F.Nacimiento","Teléfono","Email","Dirección","Permiso","Alta","Profesor","Vehículo",
     "Ex.Teórico B","Res.","Ex.Práctico B","Res.","Ex.Teórico común","Res.","Ex.Teórico específico","Res.","Ex.Circuito cerrado","Res.","Ex.Vía pública","Res.",
-    "Clases realizadas","Faltas","Clases contratadas","Quedan","Contratado €","Pagado €","Pendiente €","Consentimiento RGPD"];
+    "Clases realizadas","Faltas","Clases contratadas","Quedan","Consentimiento RGPD"];
   const q=v=>'"'+String(v??"").replace(/"/g,'""')+'"';
-  const num=n=>String(Math.round(n*100)/100).replace(".",",");
-  const filas=db.alumnos.map(a=>{ const e=a.examenes||{}, r=a.resultados||{}, b=bonoDe(a), c=cuentasDe(a), cl=db.clases.filter(x=>x.alumnoId===a.id);
-    const ex=k=>[fmt(e[k]),TXT_RES[r[k]]||""];
+  const filas=db.alumnos.map(a=>{ const e=a.examenes||{}, r=a.resultados||{}, b=bonoDe(a), cl=db.clases.filter(x=>x.alumnoId===a.id);
+    const ex=k=>[(fmt(e[k])+(e[k]&&horaEx(a,k)?" "+horaEx(a,k):"")),TXT_RES[r[k]]||""];
     return [a.apellidos,a.nombre,a.dni,fmt(a.fnac),a.tel,a.email,a.dir,a.permiso,fmt(a.alta),a.profesor,a.vehiculo,
       ...ex("teorico"),...ex("practico"),...ex("comun"),...ex("especifico"),...ex("circuito"),...ex("via"),
       cl.filter(x=>x.estado==="realizada").length,cl.filter(x=>x.estado==="falta").length,b.contratadas,b.contratadas?b.quedan:"",
-      num(c.total),num(c.pagado),num(c.pendiente),a.rgpd?"Sí "+fmt(a.rgpdFecha):"No"].map(q).join(";"); });
+      a.rgpd?"Sí "+fmt(a.rgpdFecha):"No"].map(q).join(";"); });
   descargar("Listado_alumnos_"+hoy()+".csv","\ufeff"+[cab.map(q).join(";"),...filas].join("\r\n"),"text/csv;charset=utf-8");
 };
 
@@ -1111,7 +1098,7 @@ $("filtroProf").onchange=pintarAgenda;
 
 function examenesDelDia(f){
   const r=[]; db.alumnos.forEach(a=>EXAMENES[a.permiso].forEach(([k,n])=>{ if(a.examenes&&a.examenes[k]===f) r.push({a,k,n}); }));
-  return r.sort((x,y)=>nombreCompleto(x.a).localeCompare(nombreCompleto(y.a),"es"));
+  return r.sort((x,y)=>(horaEx(x.a,x.k)||"99").localeCompare(horaEx(y.a,y.k)||"99")||nombreCompleto(x.a).localeCompare(nombreCompleto(y.a),"es"));
 }
 const EX_CORTO={teorico:"Teórico",practico:"Práctico",comun:"T. común",especifico:"T. específico",circuito:"Circuito",via:"Vía pública"};
 const COLOR_PERM={B:"var(--b)",A1:"var(--a1)",A2:"var(--a2)"};
@@ -1119,7 +1106,7 @@ function cabeceraExamenes(ex){
   if(!ex.length) return "";
   const max=4, vis=ex.slice(0,max);
   return `<div class="exlist">`+vis.map(e=>`<span class="exchip" data-al="${e.a.id}" style="--c:${COLOR_PERM[e.a.permiso]||"#999"}"
-      title="${esc(nombreCompleto(e.a)+" · "+e.a.permiso+" · "+TXT_EXAMEN[e.k])}">📝 ${esc(e.a.apellidos.split(" ")[0]+", "+(e.a.nombre[0]||"")+".")}<small>${esc(EX_CORTO[e.k])}</small></span>`).join("")
+      title="${esc(nombreCompleto(e.a)+" · "+e.a.permiso+" · "+TXT_EXAMEN[e.k])}">📝 ${esc(e.a.apellidos.split(" ")[0]+", "+(e.a.nombre[0]||"")+".")}<small>${esc(EX_CORTO[e.k])}${horaEx(e.a,e.k)?" · "+horaEx(e.a,e.k):""}</small></span>`).join("")
     +(ex.length>max?`<span class="exmas" title="${esc(ex.slice(max).map(e=>nombreCompleto(e.a)+" – "+TXT_EXAMEN[e.k]).join("\n"))}">+${ex.length-max} más</span>`:"")+`</div>`;
 }
 function pintarAgenda(){
@@ -1167,7 +1154,7 @@ function pintarExamenes(){
   }));
   if(fl!=="prox") db.alumnos.forEach(a=>(a.historial||[]).forEach(hh=>{ if(tp&&tp!==hh.k) return; if(!EXAMENES[a.permiso].some(([k])=>k===hh.k)) return;
     filas.push({f:hh.fecha,k:hh.k,n:NOMBRE_EX[hh.k],a,hist:hh.res}); }));
-  filas.sort((x,y)=>x.f.localeCompare(y.f)||nombreCompleto(x.a).localeCompare(nombreCompleto(y.a),"es"));
+  filas.sort((x,y)=>x.f.localeCompare(y.f)||horaEx(x.a,x.k).localeCompare(horaEx(y.a,y.k))||nombreCompleto(x.a).localeCompare(nombreCompleto(y.a),"es"));
   // Avisos globales: alumnos con fechas que coinciden o desordenadas, y clases en día de examen
   const av=[];
   db.alumnos.forEach(a=>{ const r=comprobarExamenes(a.permiso,a.examenes||{},a.id,a.resultados);
@@ -1178,7 +1165,7 @@ function pintarExamenes(){
   $("tExam").innerHTML=`<tr><th>Fecha</th><th>Examen</th><th>Fase</th><th>Alumno</th><th>Permiso</th><th>DNI/NIE</th><th>Profesor</th><th>Aviso / Resultado</th></tr>`+
     (filas.length?filas.map(x=>{ const nuevo=x.f!==ult; ult=x.f;
       const fase=["teorico","comun","especifico"].includes(x.k)?"Teórica":"Práctica";
-      return `<tr${nuevo?' style="border-top:2px solid var(--pri2)"':""}><td>${nuevo?`<b>${diaSem(x.f)} ${fmt(x.f)}</b>`:""}</td><td>${esc(x.n)}</td><td>${fase}</td>
+      return `<tr${nuevo?' style="border-top:2px solid var(--pri2)"':""}><td>${nuevo?`<b>${diaSem(x.f)} ${fmt(x.f)}</b>`:""}</td><td>${esc(x.n)}${(()=>{ const hh=x.hist?"":horaEx(x.a,x.k); return hh?` · <b>${hh}</b>`:(!x.hist&&x.f>=h?' · <span class="pend">sin hora</span>':""); })()}</td><td>${fase}</td>
       <td><a href="#" onclick="abrirFicha('${x.a.id}');return false">${esc(nombreCompleto(x.a))}</a></td>
       <td><span class="tag t-${x.a.permiso}">${x.a.permiso}</span></td><td>${esc(x.a.dni)}</td><td>${esc(x.a.profesor)}</td>
       <td>${x.hist?`${rtag(x.hist)} <small style="color:var(--muted)">intento anterior</small>`
@@ -1224,7 +1211,7 @@ function htmlHoja(){
       grupos[p].map(c=>{ const a=alumno(c.alumnoId)||{}; return `<tr><td>${c.hora}–${finClase(c)}</td><td>${esc(nombreCompleto(a))} (${a.permiso||""})</td><td>${esc(a.tel)}</td>
         <td>${esc(TXT_TIPO_CLASE[c.tipo]||c.tipo)}</td><td>${esc(c.vehiculo)}</td><td>${esc(c.obs)}</td><td>☐ Sí ☐ Falta</td></tr>`; }).join("")+`</table>`;
   });
-  if(ex.length) h+=`<h3 style="margin:14px 0 4px">📝 Exámenes de ese día</h3><ul style="margin:0">`+ex.map(e=>`<li>${esc(nombreCompleto(e.a))} (${e.a.permiso}) – ${esc(TXT_EXAMEN[e.k])}</li>`).join("")+`</ul>`;
+  if(ex.length) h+=`<h3 style="margin:14px 0 4px">📝 Exámenes de ese día</h3><ul style="margin:0">`+ex.map(e=>`<li>${horaEx(e.a,e.k)?"<b>"+horaEx(e.a,e.k)+"</b> · ":""}${esc(nombreCompleto(e.a))} (${e.a.permiso}) – ${esc(TXT_EXAMEN[e.k])}</li>`).join("")+`</ul>`;
   return h;
 }
 function pintarHoja(){ $("hjVista").innerHTML=`<div class="scroll" style="max-height:50vh">${htmlHoja()}</div>`; $("hjWa").disabled=!$("hjProf").value; }
@@ -1234,7 +1221,7 @@ $("hjWa").onclick=()=>{
   const n=telWa(p&&p.tel); if(!n){ alert("El profesor no tiene un teléfono móvil válido. Añádelo en «Profesores y vehículos»."); return; }
   const l=cl.map(c=>{ const a=alumno(c.alumnoId)||{}; return `🕗 ${c.hora}–${finClase(c)} · ${nombreCompleto(a)}${a.tel?" ("+a.tel+")":""}\n    ${TXT_TIPO_CLASE[c.tipo]||c.tipo}${c.vehiculo?" · "+c.vehiculo:""}${c.obs?" · "+c.obs:""}`; }).join("\n");
   const t=`Hola ${pf.split(" ")[0]} 👋\nTus clases del ${fechaLarga(f)}:\n\n${l||"No tienes clases programadas."}`
-    +(ex.length?`\n\n📝 Exámenes de tus alumnos:\n`+ex.map(e=>`• ${nombreCompleto(e.a)} – ${TXT_EXAMEN[e.k]}`).join("\n"):"")+firma();
+    +(ex.length?`\n\n📝 Exámenes de tus alumnos:\n`+ex.map(e=>`• ${horaEx(e.a,e.k)?horaEx(e.a,e.k)+" · ":""}${nombreCompleto(e.a)} – ${TXT_EXAMEN[e.k]}`).join("\n"):"")+firma();
   window.open("https://wa.me/"+n+"?text="+encodeURIComponent(t),"_blank");
 };
 
@@ -1269,7 +1256,7 @@ function normalizar(){
   db.alumnos=db.alumnos||[]; db.clases=db.clases||[]; db.avisos=db.avisos||{};
   db.config=db.config||{nombre:"Autoescuela",tel:""};
   if(db.config.faltaDescuenta==null) db.config.faltaDescuenta=true;
-  db.alumnos.forEach(a=>{ a.examenes=a.examenes||{}; a.resultados=a.resultados||{}; a.historial=a.historial||[]; a.cargos=a.cargos||[]; a.pagos=a.pagos||[]; });
+  db.alumnos.forEach(a=>{ a.examenes=a.examenes||{}; a.horasEx=a.horasEx||{}; a.resultados=a.resultados||{}; a.historial=a.historial||[]; a.cargos=a.cargos||[]; a.pagos=a.pagos||[]; });
   db.clases.forEach(c=>{ if(c.estado==null) c.estado=""; });
   // Bases de datos anteriores: duración en horas → minutos
   db.clases.forEach(c=>{ if(c.durMin==null){ c.durMin=(Number(c.dur)||1)*60; delete c.dur; } });
@@ -1391,11 +1378,11 @@ function txtClase(c){
     +`\n\nSi no puedes asistir, avísanos con antelación, por favor.`+firma();
 }
 function txtExamen(a,k){
-  return `Hola ${a.nombre} 👋\nTe recordamos tu examen del permiso ${a.permiso}:\n📝 ${TXT_EXAMEN[k]}\n📅 ${fechaLarga(a.examenes[k])}`
+  return `Hola ${a.nombre} 👋\nTe recordamos tu examen del permiso ${a.permiso}:\n📝 ${TXT_EXAMEN[k]}\n📅 ${fechaLarga(a.examenes[k])}`+(horaEx(a,k)?`\n🕘 Hora de la cita: ${horaEx(a,k)}`:"")
     +`\n\nRecuerda llevar tu DNI/NIE original y en vigor. ¡Mucha suerte! 🍀`+firma();
 }
 function keyClase(c){ return "c:"+c.id+":"+c.fecha+":"+c.hora+":"+durDe(c); }   // si cambia fecha u hora, vuelve a quedar pendiente
-function keyEx(a,k){ return "e:"+a.id+":"+k+":"+a.examenes[k]; }
+function keyEx(a,k){ return "e:"+a.id+":"+k+":"+a.examenes[k]+(horaEx(a,k)?":"+horaEx(a,k):""); }
 function estadoAviso(key){ const t=db.avisos[key]; return t?`<span class="sent" title="Enviado el ${t}">✔ avisado</span>`:`<span class="pend">pendiente</span>`; }
 function waAbrir(a,texto,key){
   const n=telWa(a&&a.tel);
@@ -1422,7 +1409,7 @@ function pintarAvisos(){
   db.clases.filter(c=>vale(c.fecha)&&c.estado!=="anulada").forEach(c=>{ const a=alumno(c.alumnoId); if(!a) return;
     avItems.push({fecha:c.fecha,ord:c.fecha+c.hora,a,que:"Clase práctica",det:`${c.hora}–${finClase(c)} · ${TXT_TIPO_CLASE[c.tipo]||c.tipo}${c.profesor?" · "+c.profesor:""}`,key:keyClase(c),run:()=>waClase(c.id)}); });
   db.alumnos.forEach(a=>EXAMENES[a.permiso].forEach(([k])=>{ const fe=a.examenes&&a.examenes[k]; if(fe&&vale(fe))
-    if(!(a.resultados&&a.resultados[k])) avItems.push({fecha:fe,ord:fe+"00",a,que:"Examen",det:TXT_EXAMEN[k],key:keyEx(a,k),run:()=>waExamen(a.id,k)}); }));
+    if(!(a.resultados&&a.resultados[k])) avItems.push({fecha:fe,ord:fe+(horaEx(a,k)||"00"),a,que:"Examen",det:TXT_EXAMEN[k]+(horaEx(a,k)?" · "+horaEx(a,k):" · ⚠ sin hora"),key:keyEx(a,k),run:()=>waExamen(a.id,k)}); }));
   if(avModo==="pend") avItems=avItems.filter(x=>!db.avisos[x.key]);
   avItems.sort((x,y)=>x.ord.localeCompare(y.ord));
   const pend=avItems.filter(x=>!db.avisos[x.key]).length;
