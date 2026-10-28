@@ -513,7 +513,7 @@ tr.inactivo td{color:var(--muted);background:#fafafa}
 "use strict";
 /* ================== DATOS ================== */
 const LS_KEY = "agendaAutoescuela_v1";
-const VERSION = "v8 NOV27";
+const VERSION = "v8.1 NOV27";
 const HORAS = []; for (let h = 8; h < 20; h++) HORAS.push(String(h).padStart(2,"0")+":00");
 const EXAMENES = {
   B:  [["teorico","Teórico"],["practico","Práctico"]],
@@ -1221,7 +1221,7 @@ $("hjWa").onclick=()=>{
   const l=cl.map(c=>{ const a=alumno(c.alumnoId)||{}; return `🕗 ${c.hora}–${finClase(c)} · ${nombreCompleto(a)}${a.tel?" ("+a.tel+")":""}\n    ${TXT_TIPO_CLASE[c.tipo]||c.tipo}${c.vehiculo?" · "+c.vehiculo:""}${c.obs?" · "+c.obs:""}`; }).join("\n");
   const t=`Hola ${pf.split(" ")[0]} 👋\nTus clases del ${fechaLarga(f)}:\n\n${l||"No tienes clases programadas."}`
     +(ex.length?`\n\n📝 Exámenes de tus alumnos:\n`+ex.map(e=>`• ${horaEx(e.a,e.k)?horaEx(e.a,e.k)+" · ":""}${nombreCompleto(e.a)} – ${TXT_EXAMEN[e.k]}`).join("\n"):"")+firma();
-  window.open("https://wa.me/"+n+"?text="+encodeURIComponent(t),"_blank");
+  window.open("https://api.whatsapp.com/send?phone="+n+"&text="+encodeURIComponent(t),"_blank");
 };
 
 /* ================== RECORDATORIO DE COPIA DE SEGURIDAD ================== */
@@ -1387,7 +1387,7 @@ function waAbrir(a,texto,key){
   const n=telWa(a&&a.tel);
   if(!n){ alert("El alumno no tiene un teléfono móvil válido en su ficha."); return; }
   if(db.ejemplo && !confirm("Son datos de EJEMPLO con un teléfono ficticio.\nPara probar, pon tu propio móvil en la ficha de ese alumno.\n\n¿Abrir WhatsApp igualmente?")) return;
-  window.open("https://wa.me/"+n+"?text="+encodeURIComponent(texto),"_blank");
+  window.open("https://api.whatsapp.com/send?phone="+n+"&text="+encodeURIComponent(texto),"_blank");
   if(key){ const d=new Date(), t=fmt(iso(d))+" "+String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0");
     [].concat(key).forEach(k=>db.avisos[k]=t); persistir(); }
   refrescarVistas();
