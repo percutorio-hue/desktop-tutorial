@@ -642,8 +642,8 @@ tr.inactivo td{color:var(--muted);background:#fafafa}
     <div class="plpaso"><span>2</span> Pega la respuesta de cada uno con «📋 Respuesta» (o márcala a mano) y pon la prioridad (1 = primero)</div>
     <div><table class="plt" id="plTabla"></table></div>
 
-    <div class="plpaso"><span>3</span> Genera la propuesta (empieza el lunes a la hora indicada, por orden de prioridad)</div>
-    <div class="row"><button class="btn" id="plGenerar">⚙️ Generar propuesta</button></div>
+    <div class="plpaso"><span>3</span> Genera y cita: las clases se crean solas en la agenda (empieza el lunes a la hora indicada, por orden de prioridad). Si algo no te gusta, «↩ Deshacer»</div>
+    <div class="row"><button class="btn" id="plGenerar">⚙️ Generar y citar</button></div>
     <div id="plPropuesta" style="margin-top:10px"></div>
     <div id="plIncid" class="incbox"></div>
     <div class="plpaso"><span>4</span> Avisos de la semana: cada alumno recibe sus clases; si algo cambia, vuelve a quedar pendiente</div>
@@ -886,7 +886,7 @@ window.alert=function(msg){
 };
 /* ================== DATOS ================== */
 const LS_KEY = "agendaAutoescuela_v1";
-const VERSION = "v13.7 NOV26";
+const VERSION = "v14.3 NOV26";
 const HORAS = []; for (let m = 8*60; m < 21*60; m += 30) HORAS.push(String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0"));   // filas de 30 min: 08:00 … 20:30 (la última termina a las 21:00)
 const EXAMENES = {
   B:  [["teorico","Teórico"],["practico","Práctico"]],
@@ -2138,7 +2138,7 @@ function pintarPlan(){
   $("plProf").innerHTML=(ps.length?"":'<option value="">— Da de alta un profesor —</option>')+ps.map(n=>`<option>${esc(n)}</option>`).join("");
   if(ps.includes(cur)) $("plProf").value=cur; else if(ps.includes(profDefecto())) $("plProf").value=profDefecto();
   const P=planDe(lun), L=alumnosPlan(), desde=$("plDesde").value||"15:30";
-  { const antes=JSON.stringify(P.resp); L.forEach(a=>{ if(clasesSemana(a.id,lun).length){ respDe(P,a); sincronizarPlanAlumno(a.id,lun); } }); if(JSON.stringify(P.resp)!==antes) persistir(); }   // v12.2
+  { const antes=JSON.stringify(P.resp); L.forEach(a=>{ if(clasesSemana(a.id,lun).length){ respDe(P,a); sincronizarPlanAlumno(a.id,lun); } }); Object.values(P.resp).forEach(ajustarClasesADias); if(JSON.stringify(P.resp)!==antes) persistir(); }   // v12.2 · v14.1
   const inc=L.filter(a=>respDe(P,a).inc), preg=inc.filter(a=>P.preg[a.id]).length;
   $("plResumen").textContent=L.length?`${inc.length} elegido(s) · ${preg} preguntado(s) · semana del ${fmt(lun)} al ${fmt(addDias(lun,4))}`:"";
   $("plTabla").innerHTML=L.length?`<thead><tr><th>Incluir</th><th>Alumno</th><th>Pregunta</th><th>Prioridad</th><th title="1+1 = dos clases seguidas el mismo día">Clases</th><th>Tipo</th></tr></thead>`+
@@ -2171,11 +2171,15 @@ function cambioPlan(e){
   const a=alumno(tr.dataset.al), r=respDe(planDe(lunesDe($("plSemana").value)),a), t=e.target;
   if(t.dataset.f==="inc") r.inc=t.checked;
   else if(t.dataset.f==="prio") r.prio=t.value?Math.max(1,parseInt(t.value,10)):"";
-  else if(t.dataset.f==="cl"){ const [n,d]=t.value.split("|"); r.n=parseInt(n,10)||0; r.doble=d==="1"; }
+  else if(t.dataset.f==="cl"){ const [n,d]=t.value.split("|"), nn=parseInt(n,10)||0; if(nn!==r.n||(d==="1")!==!!r.doble) r.nAuto=false; r.n=nn; r.doble=d==="1";
+    const nd=Object.keys(r.dias||{}).length; if(r.n<nd){ r.n=nd; toast("Tiene "+nd+" día(s) marcados: se le citan todos. Para darle menos, desmarca días."); setTimeout(pintarPlan,50); } }
   else if(t.dataset.f==="tipo") r.tipo=t.value;
   else if(t.dataset.d!=null){ const i=t.dataset.d, h=tr.querySelector(`input[data-h="${i}"]`), sm=tr.querySelector(`select[data-m="${i}"]`), hh=tr.querySelector(`input[data-hh="${i}"]`);
     if(t.checked){ r.dias[i]=h.value||$("plDesde").value||"15:30"; r.inc=true; tr.querySelector('input[data-f="inc"]').checked=true; } else { delete r.dias[i]; delete r.modo[i]; delete r.hasta[i]; }
-    h.disabled=sm.disabled=!t.checked; hh.classList.toggle("hidden",!(t.checked&&sm.value==="entre")); }
+    h.disabled=sm.disabled=!t.checked; hh.classList.toggle("hidden",!(t.checked&&sm.value==="entre"));
+    { const nd=Object.keys(r.dias).length; if(r.nAuto||r.n<nd){ r.n=nd; if(r.nAuto) r.doble=false; } } const sel=tr.querySelector('select[data-f="cl"]');
+    if(true){
+      if(sel){ const v=r.n+"|"+(r.doble?1:0); if(![...sel.options].some(o=>o.value===v)){ const o=document.createElement("option"); o.value=v; o.textContent=String(r.n); sel.appendChild(o); } sel.value=v; } } }
   else if(t.dataset.m!=null){ const i=t.dataset.m; r.modo[i]=t.value; const hh=tr.querySelector(`input[data-hh="${i}"]`);
     hh.classList.toggle("hidden",t.value!=="entre"); if(t.value==="entre") r.hasta[i]=hh.value||hhmm(FIN_DIA); else delete r.hasta[i]; }
   else if(t.dataset.hh!=null){ r.hasta[t.dataset.hh]=t.value||hhmm(FIN_DIA); }
@@ -2326,7 +2330,7 @@ function vistaPegar(){
   const ks=Object.keys(res.dias).sort();
   $("pgVista").innerHTML=!$("pgTexto").value.trim()?'<span style="color:var(--muted)">Aquí verás lo que entiende la app.</span>'
     :`<b>Lo que entiendo:</b><ul>${ks.map(i=>`<li>${DIAS_LARGOS[i]} ${res.modo[i]==="exacta"?"a las <b>"+res.dias[i]+"</b>":res.modo[i]==="entre"?"de <b>"+res.dias[i]+"</b> a <b>"+(res.hasta[i]||hhmm(FIN_DIA))+"</b>":"desde las <b>"+res.dias[i]+"</b>"}</li>`).join("")||"<li>—</li>"}</ul>
-      <div style="margin-top:6px">Clases: <b>${res.n!=null?txtClases({n:res.n,doble:!!res.doble})+(res.doble?" (seguidas el mismo día)":""):"(no lo dice: se deja "+(respDe(planDe(lunesDe($("plSemana").value)),alumno(pgAlumno)).n)+")"}</b></div>
+      <div style="margin-top:6px">Clases: <b>${res.n!=null?txtClases({n:res.n,doble:!!res.doble})+(res.doble?" (seguidas el mismo día)":""):"una por cada día disponible → "+Object.keys(res.dias).length+" (lo puedes cambiar en «Clases»)"}</b></div>
       ${res.dudas.length?`<div class="msgs"><div class="m-warn">⚠️ ${res.dudas.map(esc).join("<br>⚠️ ")}</div></div>`:'<div class="msgs"><div class="m-ok">✔ Respuesta clara.</div></div>'}
       <div style="font-size:12px;color:var(--muted);margin-top:6px">Al aplicar podrás corregir cualquier día u hora en su fila.</div>`;
   return res;
@@ -2342,7 +2346,10 @@ $("pgPortapapeles").onclick=async()=>{ try{ const x=await navigator.clipboard.re
 $("pgCancelar").onclick=()=>$("mPegar").classList.add("hidden");
 $("pgAplicar").onclick=()=>{
   const res=vistaPegar(), r=respDe(planDe(lunesDe($("plSemana").value)),alumno(pgAlumno));
-  r.texto=$("pgTexto").value.trim(); r.dias=res.dias; r.modo=res.modo; r.hasta=res.hasta; if(res.n!=null) r.n=res.n; if(res.doble!=null) r.doble=res.doble;
+  r.texto=$("pgTexto").value.trim(); r.dias=res.dias; r.modo=res.modo; r.hasta=res.hasta;
+  // v13.9: si el alumno no dice cuántas clases, se reserva UNA por cada día que da (el profesor puede cambiarlo luego en «Clases»)
+  if(res.n!=null){ r.n=Math.max(res.n,Object.keys(res.dias).length); r.nAuto=false; if(res.doble!=null) r.doble=res.doble; }
+  else { r.n=Object.keys(res.dias).length; r.doble=false; r.nAuto=true; }
   r.dudosa=res.dudas.length>0; r.inc=true;
   persistir(); $("mPegar").classList.add("hidden"); pintarPlan(); toast(r.dudosa?"Aplicado. Revisa la fila marcada.":"Respuesta aplicada.");
 };
@@ -2375,8 +2382,15 @@ function errBloques(c,lista){
   const spans=l=>{ const sp={}; l.forEach(x=>{ const k=grupoMoto(x), i=minutos(x.hora), f=i+durDe(x); sp[k]=sp[k]?{i:Math.min(sp[k].i,i),f:Math.max(sp[k].f,f)}:{i,f}; }); return sp; };
   const mal=sp=>!!(sp.D&&sp.C&&!(sp.D.f+CAMBIO_MOTO<=sp.C.i||sp.C.f+CAMBIO_MOTO<=sp.D.i));
   const sp=spans(todas); if(!mal(sp)) return null;
-  // si ese día ya estaba mezclado (clases antiguas o puestas a mano), solo se rechaza lo que lo empeora (alarga un bloque)
-  const sp0=spans(todas.slice(0,-1)); if(mal(sp0)&&sp0[g]&&sp[g].i===sp0[g].i&&sp[g].f===sp0[g].f) return null;
+  // v14.2: si ese día YA estaba mezclado (clases antiguas o movidas a mano), solo se admite una clase que deje 30 min con
+  // las del otro tipo y que no añada otro cambio de moto. (Antes bastaba con no alargar el bloque y eso colaba clases pegadas.)
+  const ant=todas.slice(0,-1), sp0=spans(ant);
+  if(mal(sp0)){
+    const ci=minutos(c.hora), cf=ci+durDe(c);
+    const hueco=ant.every(x=>grupoMoto(x)===g||minutos(x.hora)+durDe(x)+CAMBIO_MOTO<=ci||cf+CAMBIO_MOTO<=minutos(x.hora));
+    const cambios=l=>{ const q=l.slice().sort((x,y)=>minutos(x.hora)-minutos(y.hora)).map(grupoMoto); let n=0; for(let k=1;k<q.length;k++) if(q[k]!==q[k-1]) n++; return n; };
+    if(hueco&&cambios(todas)<=cambios(ant)) return null;
+  }
   return `Moto: ${c.profesor} da la destreza y la circulación en bloques separados, con ${CAMBIO_MOTO} min libres para cambiar de moto (ese día quedaría destreza ${hhmm(sp.D.i)}–${hhmm(sp.D.f)} y circulación ${hhmm(sp.C.i)}–${hhmm(sp.C.f)}).`;
 }
 function erroresPlan(c,lista){ const e=validarClase(c,lista).err.slice(), b=errBloques(c,lista); if(b) e.push(b); return e; }
@@ -2392,12 +2406,16 @@ function probarClase(c,lista){
     c.vehiculo=etiquetaVeh(v); if(!validarClase(c,lista).err.length) return true; }
   c.vehiculo=orig; return false;
 }
+/* v14.1: se cita al alumno TODOS los días que ha dado. «Clases» nunca queda por debajo del nº de días marcados
+   (puede ser mayor: entonces la app junta en 1+1). Para darle menos días, desmarca días en su fila. */
+function ajustarClasesADias(r){ if(!r||!r.dias) return false; const d=Object.keys(r.dias).length; if((Number(r.n)||0)<d){ r.n=d; return true; } return false; }
 function opcionUnica(r){ const ks=Object.keys(r.dias); return ks.length===1&&(r.modo[ks[0]]==="exacta"); }
 $("plGenerar").onclick=()=>{
   sincronizarPlan();
   const lun=lunesDe($("plSemana").value), P=planDe(lun), prof=$("plProf").value, desde=minutos($("plDesde").value||"15:30");
   if(!prof){ alert("Elige el profesor."); return; }
   const porPrio=(x,y)=>(Number(x.r.prio)||999)-(Number(y.r.prio)||999)||nombreCompleto(x.a).localeCompare(nombreCompleto(y.a),"es");
+  alumnosPlan().forEach(a=>ajustarClasesADias(respDe(P,a)));   // v14.1: todos los días que dio
   const lista=alumnosPlan().map(a=>({a,r:respDe(P,a)})).filter(x=>x.r.inc&&x.r.n>0&&Object.keys(x.r.dias).length).sort(porPrio);
   if(!lista.length){ alert("No hay alumnos con respuesta anotada (incluidos, con clases y algún día marcado)."); return; }
   // v13.1: se prueban 3 órdenes (mezclado / destreza primero / circulación primero) y se queda el que cita a más alumnos
@@ -2503,6 +2521,7 @@ $("plGenerar").onclick=()=>{
   plProp=Object.assign({lun,prof},mejor);
   P.generado=true; P.prof=prof; P.desde=$("plDesde").value||"15:30"; persistir();
   plCreadas=null; pintarPropuesta();
+  if($("plCrear")) $("plCrear").click();     // v14.0: se citan solas, sin pulsar «Crear estas clases»
 };
 /* v12.5: incidencias del plan EN VIVO. Un alumno es incidencia mientras le falten clases de las que pidió en una semana ya
    generada. Para cada día que pidió y no tiene clase se mira ahora mismo si hay hueco libre o qué lo impide. Al darle la cita
@@ -2530,14 +2549,36 @@ function incidenciasPlan(lun){
     return {a,r,lleva,dias:diasPlanAlumno(a,r,lun)}; }).filter(Boolean)
     .sort((x,y)=>nombreCompleto(x.a).localeCompare(nombreCompleto(y.a),"es"));
 }
+/* v14.2: días en los que un profesor tiene destreza y circulación de moto sin los 30 min de cambio (o con más de un cambio) */
+function diasMezclados(lun){
+  const r=[];
+  for(let d=0;d<6;d++){ const f=addDias(lun,d), porProf={};
+    db.clases.filter(c=>c.fecha===f&&c.profesor&&grupoMoto(c)).forEach(c=>{ const k=c.profesor.toLowerCase(); (porProf[k]=porProf[k]||[]).push(c); });
+    Object.values(porProf).forEach(l=>{ const sp={}; l.forEach(x=>{ const k=grupoMoto(x), i=minutos(x.hora), fi=i+durDe(x); sp[k]=sp[k]?{i:Math.min(sp[k].i,i),f:Math.max(sp[k].f,fi)}:{i,f:fi}; });
+      if(sp.D&&sp.C&&!(sp.D.f+CAMBIO_MOTO<=sp.C.i||sp.C.f+CAMBIO_MOTO<=sp.D.i)){
+        // v14.3: tramos seguidos del mismo tipo, para explicar exactamente qué falla
+        const o=l.slice().sort((x,y)=>minutos(x.hora)-minutos(y.hora)), tr=[];
+        o.forEach(x=>{ const g=grupoMoto(x), i=minutos(x.hora), fi=i+durDe(x), n=alumno(x.alumnoId); const nom=n?n.apellidos.split(" ")[0]+", "+(n.nombre[0]||"")+".":"?";
+          const u=tr[tr.length-1]; if(u&&u.g===g){ u.f=Math.max(u.f,fi); u.ult=nom; u.ultIni=i; } else tr.push({g,i,f:fi,pri:nom,ult:nom}); });
+        const pegadas=[]; for(let k=1;k<tr.length;k++) if(tr[k].i-tr[k-1].f<CAMBIO_MOTO) pegadas.push(`${tr[k-1].ult} (${tr[k-1].g==="D"?"destreza":"circulación"} hasta ${hhmm(tr[k-1].f)}) y ${tr[k].pri} (${tr[k].g==="D"?"destreza":"circulación"} a las ${hhmm(tr[k].i)})`+(tr[k].i-tr[k-1].f>0?` solo hay ${tr[k].i-tr[k-1].f} min`:" van pegadas"));
+        r.push({f,prof:l[0].profesor,D:sp.D,C:sp.C,tramos:tr,pegadas,cambios:tr.length-1});
+      } }); }
+  return r;
+}
+function htmlMezclados(lun){ const m=diasMezclados(lun); if(!m.length) return "";
+  return `<div class="msgs"><div class="m-warn">🏍️ <b>Destreza y circulación mezcladas</b> (sin los ${CAMBIO_MOTO} min para cambiar de moto):<ul style="margin:4px 0 0;padding-left:20px">`
+    +m.map(x=>`<li><b>${DIA_LARGO[parse(x.f).getDay()]} ${fmt(x.f).slice(0,5)}</b> · ${esc(x.prof)}: ${x.tramos.map(t=>`${t.g==="D"?"Destreza":"Circulación"} ${hhmm(t.i)}–${hhmm(t.f)}`).join(" → ")}
+        <ul style="margin:2px 0 4px;padding-left:18px">${x.cambios>1?`<li>${x.cambios} cambios de moto en la tarde (solo se permite uno: todas las de destreza juntas y todas las de circulación juntas)</li>`:""}${x.pegadas.map(t=>`<li>${esc(t)}: faltan los ${CAMBIO_MOTO} min para cambiar de moto</li>`).join("")}</ul></li>`).join("")
+    +`</ul><div style="font-size:12px;margin-top:4px">Arrastra alguna clase para dejar un bloque de cada tipo con ${CAMBIO_MOTO} min libres entre ambos.</div></div></div>`; }
 function htmlIncidencias(lun,dondeAgenda){
-  const L=incidenciasPlan(lun); if(!L.length) return "";
+  const L=incidenciasPlan(lun); if(!L.length) return htmlMezclados(lun);
   return `<div class="msgs"><div class="m-warn">⚠️ <b>Alumnos sin todas sus clases</b> · semana del ${fmt(lun)} (${L.length})`
     +L.map(x=>{ const ks=Object.keys(x.dias).sort();
       return `<div style="margin-top:6px"><a href="#" onclick="abrirFicha('${x.a.id}');return false"><b>${esc(nombreCompleto(x.a))}</b></a> <span class="tag t-${x.a.permiso}">${x.a.permiso}</span>${["A1","A2"].includes(x.a.permiso)?` · <b>${esc(x.r.tipo||"")}</b>`:""} · pidió ${txtClases(x.r)}, tiene ${x.r.doble?txtClases({n:x.lleva,doble:true}):x.lleva}
         ${ks.length?`<ul style="margin:3px 0 0;padding-left:20px">${ks.map(d=>`<li>${x.dias[d].libre?"🟢":"🔴"} ${DIAS_LARGOS[d]} ${esc(x.dias[d].txt)}${x.dias[d].libre&&dondeAgenda?` <button class="btn sm" style="padding:1px 8px" onclick="citarIncidencia('${x.a.id}','${addDias(lun,+d)}','${x.dias[d].libre}','${encodeURIComponent(x.dias[d].veh||"")}')">➕ Citar</button>`:""}</li>`).join("")}</ul>`
           :`<div style="font-size:12px">Ya tiene clase todos los días que pidió: amplía alguna a 1+1 o prográmala a mano en otro día.</div>`}</div>`; }).join("")
-    +`<div style="font-size:12px;margin-top:6px">🔴 ocupado · 🟢 hay hueco. Al darle la cita desaparece de esta lista.</div></div></div>`;
+    +`<div style="font-size:12px;margin-top:6px">🔴 ocupado · 🟢 hay hueco. Al darle la cita desaparece de esta lista.</div>`
+    +(L.some(x=>Object.values(x.dias).some(d=>d.libre))?`<button class="btn sm" style="margin-top:6px" onclick="citarLibresTodos('${lun}')">⚡ Citar todos los huecos libres 🟢</button>`:"")+`</div></div>`+htmlMezclados(lun);
 }
 /* v12.6: en tablet no hay ratón: al tocar «⛔ ocupado» / «🟢 libre» se explica el motivo (y si hay hueco, se ofrece citar) */
 window.verMotivoDia=(id,d)=>{ const lun=lunesDe($("plSemana").value||proximoLunes()), a=alumno(id), r=planDe(lun).resp[id]; if(!a||!r) return;
@@ -2546,6 +2587,20 @@ window.verMotivoDia=(id,d)=>{ const lun=lunesDe($("plSemana").value||proximoLune
     $("mPreg").classList.remove("hidden"); $("mPregNo").onclick=()=>$("mPreg").classList.add("hidden");
     $("mPregSi").onclick=()=>{ $("mPreg").classList.add("hidden"); citarIncidencia(id,addDias(lun,d),x.libre,encodeURIComponent(x.veh||"")); }; }
   else alert(`⛔ ${nombreCompleto(a)} · ${DIAS_LARGOS[d]}\n\n${x.txt}`); };
+/* v14.0: cita de golpe todos los huecos 🟢 de la lista de incidencias (hasta las clases que pidió cada alumno) */
+window.citarLibresTodos=lun=>{
+  let n=0, vueltas=0, hubo=true;
+  while(hubo&&vueltas++<10){ hubo=false;
+    for(const x of incidenciasPlan(lun)){
+      const d=Object.keys(x.dias).sort().find(k=>x.dias[k].libre); if(d==null) continue;
+      const a=x.a, r=x.r, P=planDe(lun);
+      const c={id:uid(),alumnoId:a.id,fecha:addDias(lun,+d),hora:x.dias[d].libre,durMin:durPlan(a,r),tipo:r.tipo,profesor:P.prof||a.profesor||profDefecto(),vehiculo:x.dias[d].veh||a.vehiculo||"",obs:"",estado:"",plan:lun};
+      if(!probarClase(c,[])) continue;
+      db.clases.push(c); sincronizarPlanAlumno(a.id,c.fecha); n++; hubo=true;
+    } }
+  persistir(); refrescarListas(); pintarAgenda(); pintarLista(); if(vista==="plan") pintarPlan(); pintarIncidPlan();
+  toast(n?"✔ "+n+" clase(s) citadas en los huecos libres.":"No quedaba ningún hueco libre que citar.");
+};
 window.citarIncidencia=(id,f,h,veh)=>{ const a=alumno(id), lun=lunesDe(f), r=planDe(lun).resp[id]||{};
   abrirClase(null,{alumnoId:id,fecha:f,hora:h,durMin:durPlan(a,r),tipo:r.tipo,profesor:planDe(lun).prof||a.profesor||"",vehiculo:(veh&&decodeURIComponent(veh))||a.vehiculo||""}); };
 function pintarIncidPlan(){ const lun=lunesDe($("plSemana").value||proximoLunes());
@@ -2565,23 +2620,29 @@ function pintarPropuesta(){
       <td>${esc(TXT_TIPO_CLASE[c.tipo]||c.tipo)}${gr.length>1?` <b>👥 ${gr.length}</b>`:""}</td>
       <td>${gr.map(x=>{ const a=alumno(x.alumnoId); return `${plCreadas?"":`<button class="btn sec sm" style="padding:2px 7px" title="Cambiar esta cita" onclick="plEditar('${x.id}')">✏️</button> `}${esc(nombreCompleto(a))} <span class="tag t-${a.permiso}">${a.permiso}</span>${a.nuevo?" 🆕":""}${(plProp.unicos||[]).includes(a.id)?' <span title="Solo podía este día y hora">📌</span>':""}${x.vehiculo&&x.vehiculo!==(a.vehiculo||"")?` <small style="color:var(--pri)">· ${icoVeh(a.permiso)} ${esc(x.vehiculo)} (su vehículo estaba ocupado)</small>`:""}`; }).join("<br>")}</td></tr>`; }).join("")
       ||`<tr><td colspan="4" style="color:var(--muted)">No se ha podido citar a nadie con esa disponibilidad.</td></tr>`)+`</table>`
-    +`<p style="font-size:12px;color:var(--muted);margin:6px 0 0">${[...new Set(nuevas.map(c=>c.alumnoId))].map(id=>{ const r=planDe(plProp.lun).resp[id]; const tot=llevaPlan(id,r,clasesSemana(id,plProp.lun).concat(nuevas)); return esc(alumno(id).nombre)+": "+(r&&r.doble?txtClases({n:tot,doble:true})+" de "+txtClases(r):tot+" de "+(r?r.n:"?")+" clases"); }).join(" · ")}</p>`
+    +`<p style="font-size:12px;color:var(--muted);margin:6px 0 0">${[...new Set(nuevas.map(c=>c.alumnoId))].map(id=>{ const r=planDe(plProp.lun).resp[id]; const tot=llevaPlan(id,r,clasesSemana(id,plProp.lun).concat(nuevas.filter(n=>!db.clases.some(x=>x.id===n.id)))); return esc(alumno(id).nombre)+": "+(r&&r.doble?txtClases({n:tot,doble:true})+" de "+txtClases(r):tot+" de "+(r?r.n:"?")+" clases"); }).join(" · ")}</p>`
     +((plProp.juntadas||[]).length?`<p style="font-size:12px;color:var(--pri);margin:4px 0 0">🔗 ${plProp.juntadas.length} clase(s) juntada(s) en <b>1+1</b> automáticamente: el alumno pidió más clases que días tenía disponibles.</p>`:"")
     +(faltan.length&&!plCreadas?`<div class="msgs"><div class="m-warn">⚠️ Sin hueco suficiente: ${faltan.map(x=>`<b>${esc(nombreCompleto(x.a))}</b> (${x.unica?"solo podía a una hora concreta y ya está ocupada":"pidió "+x.pide+", citadas "+x.citadas})${(x.por||[]).length?`<ul style="margin:4px 0 6px;padding-left:20px">${x.por.map(t=>`<li>${esc(t)}</li>`).join("")}</ul>`:""}`).join("")}Revisa su disponibilidad o prográmalas a mano.</div></div>`:"")
-    +(plCreadas?`<p style="color:var(--ok);margin:8px 0 0">✔ Clases creadas. Avísalas en el paso 4.</p>`
+    +(plCreadas?`<div class="row" style="margin-top:8px;align-items:center"><span style="color:var(--ok)">✔ Clases citadas en la agenda. Avísalas en el paso 4.</span><button class="btn sec sm" id="plDeshacer" title="Quita de la agenda las clases que se acaban de citar">↩ Deshacer</button></div>`
       :nuevas.length?`<div class="row" style="margin-top:10px"><button class="btn" id="plCrear">✅ Crear estas clases</button><button class="btn sec" id="plDescartar">Descartar</button></div>`:"");
   if($("plCrear")) $("plCrear").onclick=()=>{
     // control final: ningún alumno con más clases de las pedidas esa semana
     const P=planDe(plProp.lun), sem=c=>c.fecha>=plProp.lun&&c.fecha<=addDias(plProp.lun,4)&&c.estado!=="anulada";
     const exceso={}; nuevas.forEach(c=>{ const r=P.resp[c.alumnoId]; const tot=llevaPlan(c.alumnoId,r,db.clases.filter(sem).concat(nuevas)); if(r&&tot>r.n) exceso[c.alumnoId]=txtClases(r); });
     if(Object.keys(exceso).length){ alert("Revisa: "+Object.keys(exceso).map(id=>nombreCompleto(alumno(id))+" pidió "+exceso[id]).join(", ")+". Vuelve a generar la propuesta."); return; }
-    const bad=nuevas.filter(c=>validarClase(c,nuevas.filter(x=>x!==c)).err.length);
-    if(bad.length&&!confirm(bad.length+" clase(s) ya no encajan (alguien ha programado algo mientras tanto). ¿Crear el resto?")) return;
+    const bad=nuevas.filter(c=>validarClase(c,nuevas.filter(x=>x!==c)).err.length);   // v14.0: lo que ya no encaja se omite y queda en incidencias
     const ok=nuevas.filter(c=>!bad.includes(c)); db.clases.push(...ok); persistir();
     plCreadas={}; ok.forEach(c=>(plCreadas[c.alumnoId]=plCreadas[c.alumnoId]||[]).push(c));
-    refrescarListas(); pintarAgenda(); pintarLista(); pintarPropuesta(); pintarAvisosPlan(); pintarPlan(); pintarIncidPlan(); toast(ok.length+" clases creadas.");
+    plProp.creadasIds=ok.map(c=>c.id);
+    refrescarListas(); pintarAgenda(); pintarLista(); pintarPropuesta(); pintarAvisosPlan(); pintarPlan(); pintarIncidPlan(); toast("✔ "+ok.length+" clases citadas en la agenda"+(bad.length?" ("+bad.length+" no encajaban)":"")+".");
   };
   if($("plDescartar")) $("plDescartar").onclick=()=>{ plProp=null; pintarPropuesta(); pintarIncidPlan(); };
+  if($("plDeshacer")) $("plDeshacer").onclick=()=>{ const ids=new Set(plProp.creadasIds||[]);
+    const fuera=db.clases.filter(c=>ids.has(c.id)&&!db.avisos[keyClase(c)]&&!bloqueada(c));
+    if(!fuera.length){ alert("No hay clases que deshacer (ya se han avisado o modificado)."); return; }
+    if(!confirm("¿Quitar de la agenda las "+fuera.length+" clase(s) que se acaban de citar?")) return;
+    const q=new Set(fuera.map(c=>c.id)); db.clases=db.clases.filter(c=>!q.has(c.id)); persistir();
+    plProp=null; plCreadas=null; pintarPropuesta(); refrescarListas(); pintarAgenda(); pintarLista(); pintarPlan(); toast(fuera.length+" clases quitadas."); };
   pintarIncidPlan();
 }
 /* Clases de moto de la semana (lunes–viernes) de un alumno, sin anuladas */
