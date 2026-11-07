@@ -82,6 +82,13 @@ tr:hover td{background:#f8fafd}
 .agenda td.h .hf{display:block;font-size:10px;font-weight:400;color:#9aa3b2;line-height:1.1}
 .agenda td.h.media .hi{font-size:12px;color:#7d8696}
 .agenda td.cell:hover{background:#eef4fc}
+body.consulta main input,body.consulta main select,body.consulta main textarea,body.consulta main .btn,body.consulta .modal input,body.consulta .modal select,body.consulta .modal textarea,body.consulta .modal .btn,
+body.consulta #rafaga .btn{pointer-events:none;opacity:.55}
+body.consulta #buscar,body.consulta #filtroPermiso,body.consulta #filtroArch,body.consulta #semFecha,body.consulta #semAnt,body.consulta #semSig,body.consulta #semHoy,body.consulta #filtroProf,
+body.consulta #btnHoja,body.consulta #btnSemanaImp,body.consulta #hjFecha,body.consulta #hjProf,body.consulta #hjImprimir,body.consulta #plSemana,body.consulta #plFiltro,body.consulta #avPend,body.consulta #avHoy,
+body.consulta #avManana,body.consulta #avFecha,body.consulta #exFiltro,body.consulta #exTipo,body.consulta #recFecha,body.consulta #fichaAnt,body.consulta #fichaSig,body.consulta #btnImprimir,
+body.consulta .modal .btn.sec,body.consulta #mAvisoOk,body.consulta #mTxt input,body.consulta #mTxt .btn,body.consulta #cfConsulta,body.consulta .cfConsulta,body.consulta #avisoConsulta .btn{pointer-events:auto;opacity:1}
+body.consulta #cfGuardar{pointer-events:none;opacity:.55}
 .navFicha{display:inline-flex;align-items:center;gap:4px}
 .navFicha small{font-size:11px;color:var(--muted);min-width:34px;text-align:center}
 .navLado{position:fixed;top:50%;transform:translateY(-50%);z-index:30;width:46px;height:90px;border:none;border-radius:12px;background:rgba(31,78,140,.12);color:var(--pri);font-size:46px;line-height:1;cursor:pointer}
@@ -273,6 +280,8 @@ tr.inactivo td{color:var(--muted);background:#fafafa}
   .psem .cl.nuevo{outline:2px solid #e0b000;outline-offset:-2px}
   .psem .ley{font-size:8.5px;color:#444;margin-top:3px}
 }
+/* v14.8: MÓVIL EN HORIZONTAL (pantalla baja): la cabecera tampoco se queda fija, para dejar sitio a los datos */
+@media (max-height:500px){ header{position:relative!important;top:auto!important} .plFijo{position:static!important;margin:0 0 6px!important;box-shadow:none!important} }
 /* ===== v11.7: MÓVIL (pantallas de hasta 700 px, p. ej. teléfonos de 6") ===== */
 @media (max-width:700px){
   body{font-size:15px}
@@ -396,6 +405,10 @@ tr.inactivo td{color:var(--muted);background:#fafafa}
   <input type="file" id="fileDB" accept=".json,.txt,application/json,text/plain" class="hidden">
   <span class="firma-app">Creado por <b>Antonio ML+IA</b><br><small id="verApp"></small></span>
 </header>
+<div class="banner hidden" id="avisoConsulta" style="background:#eef3fb;border-color:#9cb6dc;color:#1f3d6b">
+  <span>👁️ <b>Modo consulta:</b> este dispositivo solo sirve para mirar. Para ponerlo al día, «📂 Abrir» la última copia de la tablet.</span><span class="spacer"></span>
+  <button class="btn sm" onclick="$('btnAbrir').click()">📂 Abrir copia</button>
+</div>
 <div class="banner hidden" id="errGuardar" style="background:#fde8e8;border-color:#e08080;color:#7a1010;font-weight:600">
   <span>⚠️ ¡ATENCIÓN! Los últimos cambios NO se han podido guardar en la tablet. Haz ahora una copia con «📤 Enviar copia» o «💾 Guardar base de datos» y avisa para revisarlo.</span><span class="spacer"></span>
   <button class="btn sm wa" onclick="$('btnEnviar').click()">📤 Enviar copia</button><button class="btn sm" onclick="$('btnGuardar').click()">💾 Guardar</button>
@@ -803,6 +816,7 @@ tr.inactivo td{color:var(--muted);background:#fafafa}
       <label>Mañana de un examen práctico</label>
       <label class="chk"><input type="radio" name="cfBloq" value="todos"> No hay clases de mañana para nadie</label>
       <label style="display:block;margin-top:10px">Profesor por defecto</label><select id="cfProfDef" style="max-width:260px"></select>
+      <label class="chk cfConsulta" style="margin-top:12px;font-weight:600"><input type="checkbox" id="cfConsulta" style="width:auto"> 👁️ Este dispositivo es solo de consulta (no se puede crear, cambiar ni enviar nada)</label>
       <label style="display:block;margin-top:10px">Clases del bono para cada alumno nuevo (0 = ninguna)</label><input id="cfBonoIni" type="number" min="0" max="50" step="1" style="max-width:120px">
       <label class="chk"><input type="radio" name="cfBloq" value="profesor"> Solo no da clases de mañana el profesor de ese alumno</label>
     </div>
@@ -889,7 +903,7 @@ window.alert=function(msg){
 };
 /* ================== DATOS ================== */
 const LS_KEY = "agendaAutoescuela_v1";
-const VERSION = "v14.7 NOV26";
+const VERSION = "v14.8 NOV26 · libre";
 const HORAS = []; for (let m = 8*60; m < 21*60; m += 30) HORAS.push(String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0"));   // filas de 30 min: 08:00 … 20:30 (la última termina a las 21:00)
 const EXAMENES = {
   B:  [["teorico","Teórico"],["practico","Práctico"]],
@@ -934,14 +948,19 @@ function idbEscribir(txt){ return new Promise((ok,ko)=>{ try{ const t=idb.transa
   t.oncomplete=()=>ok(); t.onerror=()=>ko(t.error); t.onabort=()=>ko(t.error||"abortado"); }catch(e){ ko(e); } }); }
 function errorAlGuardar(mal){ const b=$("errGuardar"); if(b) b.classList.toggle("hidden",!mal); }
 function guardarYa(){
-  clearTimeout(idbTimer); idbTimer=null;
+  clearTimeout(idbTimer); idbTimer=null; setTimeout(()=>{ permitirGuardar=false; },0);
   if(!datosListos) return;
   let txt; try{ txt=JSON.stringify(db); }catch(e){ errorAlGuardar(true); return; }
   try{ localStorage.setItem("agendaPin",db.config&&db.config.pinHash||""); }catch(e){}
   if(idb) idbEscribir(txt).then(()=>errorAlGuardar(false)).catch(()=>errorAlGuardar(true));
   else { try{ localStorage.setItem(LS_KEY,txt); errorAlGuardar(false); }catch(e){ errorAlGuardar(true); } }
 }
+/* v14.8: MODO CONSULTA (por dispositivo): se puede mirar todo, pero no crear, cambiar ni enviar nada.
+   Solo se actualiza abriendo una copia de la tablet («📂 Abrir»). Se activa/desactiva en ⚙️ Autoescuela (pide el PIN para quitarlo). */
+function soloConsulta(){ try{ return localStorage.getItem("agendaSoloConsulta")==="1"; }catch(e){ return false; } }
+let permitirGuardar=false;
 function persistir(){
+  if(soloConsulta()&&!permitirGuardar) return;    // en modo consulta no se graba nada (salvo al abrir una copia)
   sinGuardar = true;
   if(!datosListos) return;                      // nunca se graba antes de haber leído los datos guardados
   clearTimeout(idbTimer); idbTimer=setTimeout(guardarYa,120);
@@ -992,7 +1011,7 @@ $("fileDB").onchange=e=>{
       const o=JSON.parse(r.result);
       if(!o||!Array.isArray(o.alumnos)||!Array.isArray(o.clases)) throw 0;
       if(db.alumnos.length && !db.ejemplo && !confirm("Se sustituirán los datos actuales por los del fichero. ¿Continuar?")) return;
-      const pinPrevio=db.config&&db.config.pinHash; db=o; if(db.config&&!db.config.pinHash&&pinPrevio) db.config.pinHash=pinPrevio; normalizar(); purgarEjemplos(); copiaPospuesta=false; persistir(); sinGuardar=false; nuevaFicha(); refrescarTodo(); toast("Cargados "+db.alumnos.length+" alumnos y "+db.clases.length+" clases.");
+      const pinPrevio=db.config&&db.config.pinHash; db=o; if(db.config&&!db.config.pinHash&&pinPrevio) db.config.pinHash=pinPrevio; normalizar(); purgarEjemplos(); copiaPospuesta=false; permitirGuardar=true; persistir(); sinGuardar=false; nuevaFicha(); refrescarTodo(); toast("Cargados "+db.alumnos.length+" alumnos y "+db.clases.length+" clases.");
     }catch(x){ alert("El fichero no es una base de datos válida de la agenda."); }
   };
   r.readAsText(f); e.target.value="";
@@ -1004,6 +1023,7 @@ $("nav").onclick=e=>{ const v=e.target.dataset.v; if(v) ver(v); };
 let vista="ficha", cambiosFicha=false, cambiosProf=false, cambiosVeh=false;
 /* Qué hay sin guardar en la pestaña actual y cómo guardarlo o descartarlo */
 function pendientesDe(v){
+  if(soloConsulta()) return null;   // v14.8: en modo consulta no hay nada que guardar
   if(v==="ficha"&&cambiosFicha) return {texto:"la ficha del alumno",
     guardar:()=>guardarAlumno(), descartar:()=>{ if(actual&&alumno(actual)) cargarFicha(actual); else nuevaFicha(); }};
   if(v==="medios"&&(cambiosProf||cambiosVeh)) return {texto:cambiosProf&&cambiosVeh?"el profesor y el vehículo":cambiosProf?"el profesor":"el vehículo",
@@ -1945,6 +1965,7 @@ const TIPO_CORTO={"Destreza":"Destreza","Circulación":"Circulación","Simulacro
   ag.addEventListener("contextmenu",e=>{ if(dr) e.preventDefault(); });
 })();
 function moverClase(c,f,h){
+  if(soloConsulta()){ avisoConsulta(); return; }
   if(!c||(c.fecha===f&&c.hora===h)) return;
   if(c.estado==="anulada"){ alert("Es una clase anulada: no se mueve."); return; }
   if(bloqueada(c)){ alert("🔒 Esta clase empieza en menos de 24 h (o ya ha pasado): no se puede mover."); return; }
@@ -3062,6 +3083,7 @@ function conNombre(texto,a){
   return "Hola "+nom+" 👋\n"+texto;
 }
 function waAbrir(a,texto,key){
+  if(soloConsulta()){ avisoConsulta(); return; }
   texto=conNombre(texto,a);
   const n=telWa(a&&a.tel);
   if(!n){ alert("El alumno no tiene un teléfono móvil válido en su ficha."); return; }
@@ -3165,7 +3187,7 @@ $("avSig").onclick=()=>{ const x=avItems.find(x=>!db.avisos[x.key]); if(x) x.run
 $("btnConfig").onclick=()=>{
   pintarCfSedes(sedes());
   $("cfNombre").value=db.config.nombre||""; $("cfTel").value=db.config.tel||""; $("cfLugar").value=db.config.lugar||""; $("cfUbi").value=db.config.ubicacion||"";
-  $("cfBonoIni").value=Number(db.config.bonoInicial)||0;
+  $("cfBonoIni").value=Number(db.config.bonoInicial)||0; $("cfConsulta").checked=soloConsulta();
   $("cfProfDef").innerHTML=db.profesores.filter(p=>p.activo!==false).map(p=>p.nombre).sort((a,b)=>a.localeCompare(b,"es")).map(n=>`<option>${esc(n)}</option>`).join("")||'<option value="">— Sin profesores —</option>'; $("cfProfDef").value=profDefecto();
   document.querySelector(`input[name=cfBloq][value=${db.config.bloqueoExamen==="profesor"?"profesor":"todos"}]`).checked=true;
   ["cfPinAct","cfPinNue","cfPinRep"].forEach(i=>$(i).value="");
@@ -3173,6 +3195,16 @@ $("btnConfig").onclick=()=>{
   $("mConfig").classList.remove("hidden"); $("cfNombre").focus();
 };
 $("cfCancelar").onclick=()=>$("mConfig").classList.add("hidden");
+/* v14.8: activar / quitar el modo consulta (al quitarlo pide el PIN) */
+function aplicarConsulta(){ const c=soloConsulta(); document.body.classList.toggle("consulta",c); const b=$("avisoConsulta"); if(b) b.classList.toggle("hidden",!c); }
+function avisoConsulta(){ toast("👁️ Modo consulta: en este dispositivo solo se puede mirar."); }
+$("cfConsulta").onchange=e=>{
+  if(e.target.checked){ try{ localStorage.setItem("agendaSoloConsulta","1"); }catch(x){} aplicarConsulta(); toast("Este dispositivo queda solo de consulta."); return; }
+  e.target.checked=true;
+  pedirTexto("🔑 PIN para quitar el modo consulta","PIN de 4 cifras","",v=>{ if(hashPin(v)===pinGuardado()){ try{ localStorage.removeItem("agendaSoloConsulta"); }catch(x){} $("cfConsulta").checked=false; aplicarConsulta(); toast("Modo consulta quitado."); } else alert("PIN incorrecto."); });
+};
+// por si algún botón se escapa: en modo consulta, los clics de acción se bloquean
+document.addEventListener("click",e=>{ if(!soloConsulta()) return; const t=e.target.closest("td.cell"); if(t&&!e.target.closest(".chip")){ e.stopPropagation(); e.preventDefault(); avisoConsulta(); } },true);
 function pintarCfSedes(l){ $("cfSedes").innerHTML=l.map(x=>`<div class="row" style="margin-bottom:6px;flex-wrap:nowrap"><input class="sdN" style="width:140px" value="${esc(x.nombre)}" placeholder="Nombre"><input class="sdR" value="${esc(x.resena)}" placeholder="Enlace de reseñas"><button type="button" class="btn del sm" onclick="this.parentElement.remove()">✖</button></div>`).join(""); }
 function leerCfSedes(){ return [...document.querySelectorAll("#cfSedes .row")].map(r=>({nombre:r.querySelector(".sdN").value.trim(),resena:r.querySelector(".sdR").value.trim()})).filter(x=>x.nombre); }
 $("cfSedeAdd").onclick=()=>pintarCfSedes(leerCfSedes().concat([{nombre:"",resena:""}]));
@@ -3240,7 +3272,7 @@ function hashPin(pin){ const h=s=>{ let x=0x811c9dc5; for(const c of s){ x^=c.ch
   let v="AML·agenda·"+pin; for(let i=0;i<500;i++) v=h(v+i); return v; }
 /* v13.7: ACTIVACIÓN POR DISPOSITIVO. La primera vez en cada dispositivo (tablet, móvil, PC/navegador) pide el código de
    activación (no distingue mayúsculas). Una vez activado, solo pide el PIN. Si se borran los datos de Chrome, vuelve a pedirlo. */
-const PEDIR_ACTIVACION=true;   // true = versión BLOQUEADA (pide código de activación) · false = versión DESBLOQUEADA (solo PIN)
+const PEDIR_ACTIVACION=false;   // true = versión BLOQUEADA (pide código de activación) · false = versión DESBLOQUEADA (solo PIN)
 const ACT_HASH="177b52a", ACT_KEY="agendaActivada";
 function dispositivoActivado(){ try{ return localStorage.getItem(ACT_KEY)===ACT_HASH; }catch(e){ return false; } }
 (function(){
@@ -3272,10 +3304,10 @@ function dispositivoActivado(){ try{ return localStorage.getItem(ACT_KEY)===ACT_
   document.addEventListener("keydown",teclado);
 })();
 
-$("verApp").textContent=VERSION;
+$("verApp").textContent=VERSION; aplicarConsulta();
 // v11.2: alturas de la cabecera y del bloque fijo del Plan semanal (para que no se solapen al hacer scroll)
 (function(){ const raiz=document.documentElement, hdr=document.querySelector("header"), pf=$("plFijo");
-  const medir=()=>{ raiz.style.setProperty("--hdrH",(MQ_MOVIL.matches?0:hdr.offsetHeight)+"px"); raiz.style.setProperty("--plH",(pf?pf.offsetHeight:0)+"px"); };
+  const medir=()=>{ raiz.style.setProperty("--hdrH",(MQ_MOVIL.matches||window.matchMedia("(max-height:500px)").matches?0:hdr.offsetHeight)+"px"); raiz.style.setProperty("--plH",(pf?pf.offsetHeight:0)+"px"); };
   medir(); window.addEventListener("resize",medir);
   if(window.ResizeObserver){ const ro=new ResizeObserver(medir); ro.observe(hdr); if(pf) ro.observe(pf); }
 })();
